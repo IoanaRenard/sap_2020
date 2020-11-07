@@ -26,6 +26,7 @@ public class TestCrypto {
 		Providers.checkProvider(StandardProvider);
 		Providers.checkProvider("SunRsaSign");
 		Providers.checkProvider("SUN");
+		Providers.checkProvider("SunJCE");
 		
 		//Message Digest
 		byte[] mdValue = HashFunction.getHash("message.txt", BCProvider, "SHA-256");
