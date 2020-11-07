@@ -6,104 +6,153 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.concurrent.RecursiveAction;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class SymCipher {
-	
-	public static void encryptECB(
-			String inputFileName,
-			String password,
-			String outputFileName,
-			String encAlgorithm
-			) throws IOException, 
-					NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-		
-		
-		//managing files
-		
+
+	public static void encryptECB(String inputFileName, String password, String outputFileName, String encAlgorithm)
+			throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
+			IllegalBlockSizeException, BadPaddingException {
+
+		// managing files
+
 		File inputFile = new File(inputFileName);
-		if(!inputFile.exists()) {
+		if (!inputFile.exists()) {
 			System.out.println("---------- The file is not there -------");
 			throw new FileNotFoundException();
 		}
 		FileInputStream fis = new FileInputStream(inputFile);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
-		
 		File outputFile = new File(outputFileName);
-		if(!outputFile.exists()) {
+		if (!outputFile.exists()) {
 			outputFile.createNewFile();
 		}
 		FileOutputStream fos = new FileOutputStream(outputFile);
-		
-		//create the Cipher
-		Cipher cipher = 
-				Cipher.getInstance(encAlgorithm+"/ECB/PKCS5Padding");
-		//init the Cipher
-		SecretKeySpec key = new SecretKeySpec(password.getBytes(), 
-				encAlgorithm);
+
+		// create the Cipher
+		Cipher cipher = Cipher.getInstance(encAlgorithm + "/ECB/PKCS5Padding");
+		// init the Cipher
+		SecretKeySpec key = new SecretKeySpec(password.getBytes(), encAlgorithm);
 		cipher.init(Cipher.ENCRYPT_MODE, key);
-		
-		//read and encrypt
+
+		// read and encrypt
 		byte[] inputBuffer = new byte[cipher.getBlockSize()];
 		byte[] outputBuffer;
 		int noBytes = 0;
-		while((noBytes = fis.read(inputBuffer)) != -1) {
+		while ((noBytes = fis.read(inputBuffer)) != -1) {
 			outputBuffer = cipher.update(inputBuffer, 0, noBytes);
 			fos.write(outputBuffer);
 		}
 		outputBuffer = cipher.doFinal();
 		fos.write(outputBuffer);
-		
+
 		fis.close();
 		fos.close();
 	}
-	
-	public static void decryptECB(
-			String inputFileName,
-			String password,
-			String outputFileName,
-			String encAlgorithm
-			) throws IOException, 
-					NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-		
-		
-		//managing files
-		
+
+	public static void decryptECB(String inputFileName, String password, String outputFileName, String encAlgorithm)
+			throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
+			IllegalBlockSizeException, BadPaddingException {
+
+		// managing files
+
 		File inputFile = new File(inputFileName);
-		if(!inputFile.exists()) {
+		if (!inputFile.exists()) {
 			System.out.println("---------- The file is not there -------");
 			throw new FileNotFoundException();
 		}
 		FileInputStream fis = new FileInputStream(inputFile);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
-		
 		File outputFile = new File(outputFileName);
-		if(!outputFile.exists()) {
+		if (!outputFile.exists()) {
+			outputFile.createNewFile();
+		}
+		FileOutputStream fos = new FileOutputStream(outputFile);
+
+		// create the Cipher
+		Cipher cipher = Cipher.getInstance(encAlgorithm + "/ECB/PKCS5Padding");
+		// init the Cipher
+		SecretKeySpec key = new SecretKeySpec(password.getBytes(), encAlgorithm);
+		cipher.init(Cipher.DECRYPT_MODE, key);
+
+		// read and encrypt
+		byte[] inputBuffer = new byte[cipher.getBlockSize()];
+		byte[] outputBuffer;
+		int noBytes = 0;
+		while ((noBytes = fis.read(inputBuffer)) != -1) {
+			outputBuffer = cipher.update(inputBuffer, 0, noBytes);
+			fos.write(outputBuffer);
+		}
+		outputBuffer = cipher.doFinal();
+		fos.write(outputBuffer);
+
+		fis.close();
+		fos.close();
+	}
+
+	public static void encryptCBC(String inputFileName, String password, String outputFileName, String encAlgorithm)
+			throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+
+		// managing files
+		File inputFile = new File(inputFileName);
+		if (!inputFile.exists()) {
+			System.out.println("---------- The file is not there -------");
+			throw new FileNotFoundException();
+		}
+		FileInputStream fis = new FileInputStream(inputFile);
+		BufferedInputStream bis = new BufferedInputStream(fis);
+
+		File outputFile = new File(outputFileName);
+		if (!outputFile.exists()) {
 			outputFile.createNewFile();
 		}
 		FileOutputStream fos = new FileOutputStream(outputFile);
 		
-		//create the Cipher
-		Cipher cipher = 
-				Cipher.getInstance(encAlgorithm+"/ECB/PKCS5Padding");
-		//init the Cipher
-		SecretKeySpec key = new SecretKeySpec(password.getBytes(), 
-				encAlgorithm);
-		cipher.init(Cipher.DECRYPT_MODE, key);
+		//CBC requires an IV value - it's not a secret
+		//option 1 - use predefine value
+		//option 2 - generate a random one
 		
-		//read and encrypt
-		byte[] inputBuffer = new byte[cipher.getBlockSize()];
+		//decide how to handle it
+		//option 1 - hardcode the value
+		//option 2 - write it in the cipher text file - at the beginning
+		
+		//we go for a random one that we will write at the beginning of the file
+		
+		//create the Cipher
+		Cipher cipher = Cipher.getInstance(encAlgorithm+"/CBC/PKCS5Padding");
+		int blockSize = cipher.getBlockSize();
+		
+		
+		//generate a random IV
+		SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+		byte[] iv = new byte[blockSize];
+		secureRandom.nextBytes(iv);
+		
+		//init the Cipher
+		SecretKeySpec key = new SecretKeySpec(password.getBytes(), encAlgorithm);
+		IvParameterSpec ivParam = new IvParameterSpec(iv);
+		cipher.init(Cipher.ENCRYPT_MODE, key, ivParam);
+		
+		//write it in the output file
+		fos.write(iv);
+		
+		byte[] inputBuffer = new byte[blockSize];
 		byte[] outputBuffer;
 		int noBytes = 0;
+		
 		while((noBytes = fis.read(inputBuffer)) != -1) {
 			outputBuffer = cipher.update(inputBuffer, 0, noBytes);
 			fos.write(outputBuffer);
@@ -113,6 +162,7 @@ public class SymCipher {
 		
 		fis.close();
 		fos.close();
+		
 	}
 
 }
